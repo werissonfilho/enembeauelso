@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ENEM do Casal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <style>
+    :root {
+      --cor-tema: #1a3c6e;
+      --cor-tema-claro: #2b5ea7;
+      --cinza-fundo: #f4f6f9;
+    }
+    body {
+      background-color: var(--cinza-fundo);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      margin: 0;
+    }
+    #main-header {
+      background-color: var(--cor-tema);
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1020;
+    }
+    #main-header img {
+      height: 40px;
+    }
+    #main-header .header-title {
+      font-size: 1.3rem;
+      font-weight: 500;
+    }
+    .user-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .user-info:hover {
+      background-color: rgba(255,255,255,0.15);
+    }
+    .user-info img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid white;
+    }
+    .card {
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      border: 1px solid #e0e0e0;
+    }
+    .btn-primary {
+      background-color: var(--cor-tema);
+      border-color: var(--cor-tema);
+    }
+    .btn-primary:hover {
+      background-color: var(--cor-tema-claro);
+      border-color: var(--cor-tema-claro);
+    }
+    .btn-outline-primary {
+      color: var(--cor-tema);
+      border-color: var(--cor-tema);
+    }
+    .btn-outline-primary:hover {
+      background-color: var(--cor-tema);
+      color: white;
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+    .modal {
+      backdrop-filter: blur(4px);
+    }
+    .questao-num {
+      width: 40px;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: #e9ecef;
+      font-weight: bold;
+      margin: 4px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .questao-num.respondida {
+      background: var(--cor-tema);
+      color: white;
+    }
+    .questao-num.atual {
+      border: 2px solid var(--cor-tema-claro);
+    }
+    .alternativa-item {
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .alternativa-item.selecionada {
+      background-color: #e2eaff;
+      border-color: var(--cor-tema-claro);
+    }
+    .alternativa-item.correta {
+      background-color: #d4edda;
+      border-color: #28a745;
+    }
+    .alternativa-item.incorreta {
+      background-color: #f8d7da;
+      border-color: #dc3545;
+    }
+    .blur {
+      filter: blur(5px);
+      cursor: pointer;
+      user-select: none;
+    }
+    /* Personalização */
+    .foto-perfil-editar {
+      position: relative;
+      display: inline-block;
+      cursor: pointer;
+    }
+    .foto-perfil-editar img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      transition: 0.3s;
+    }
+    .foto-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: 0.3s;
+      color: white;
+      font-size: 1.5rem;
+    }
+    .foto-perfil-editar:hover .foto-overlay {
+      opacity: 1;
+    }
+    .foto-perfil-editar:hover img {
+      filter: blur(2px);
+    }
+    .paleta-cores {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      justify-items: center;
+    }
+    .cor-bolinha {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+    }
+    .cor-bolinha.selecionada {
+      border-color: #333;
+    }
+    .cor-bolinha i {
+      color: white;
+      font-size: 1rem;
+      display: none;
+    }
+    .cor-bolinha.selecionada i {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <header id="main-header" style="display: none;">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Enem_logo.svg/1200px-Enem_logo.svg.png" alt="ENEM">
+    <span class="header-title" id="headerTitle"></span>
+    <div class="user-area">
+      <div class="user-info" onclick="abrirPersonalizacao()">
+        <img id="headerFoto" src="https://via.placeholder.com/36" alt="Foto">
+        <span id="headerNome" class="text-white"></span>
+      </div>
+      <button class="btn btn-outline-light btn-sm" onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- LOGIN -->
+  <div id="pagina-login" class="container mt-5" style="max-width: 500px;">
+    <div class="text-center mb-4">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Enem_logo.svg/1200px-Enem_logo.svg.png" alt="ENEM" style="height: 60px;">
+    </div>
+    <div class="card p-4">
+      <h2 class="text-center" style="color:var(--cor-tema)">Entrar</h2>
+      <div class="mb-3"><input type="email" id="loginEmail" class="form-control" placeholder="E-mail"></div>
+      <div class="mb-3"><input type="password" id="loginSenha" class="form-control" placeholder="Senha"></div>
+      <button class="btn btn-primary w-100 mb-3" onclick="login()">Entrar</button>
+      <button class="btn btn-outline-primary w-100" onclick="mostrarCadastro()">Cadastrar</button>
+    </div>
+  </div>
+
+  <!-- CADASTRO -->
+  <div id="pagina-cadastro" class="container mt-5" style="max-width: 500px; display: none;">
+    <div class="card p-4">
+      <h2 class="text-center" style="color:var(--cor-tema)">Cadastrar</h2>
+      <div class="mb-3"><input type="text" id="cadNome" class="form-control" placeholder="Nome completo"></div>
+      <div class="mb-3"><input type="email" id="cadEmail" class="form-control" placeholder="E-mail"></div>
+      <div class="mb-3"><input type="password" id="cadSenha" class="form-control" placeholder="Senha"></div>
+      <div class="mb-3">
+        <label class="form-label">Link da foto de perfil</label>
+        <input type="url" id="cadFotoURL" class="form-control" placeholder="https://cdn.discordapp.com/...">
+      </div>
+      <button class="btn btn-primary w-100 mb-3" onclick="cadastrar()">Cadastrar</button>
+      <button class="btn btn-outline-secondary w-100" onclick="mostrarLogin()">Voltar ao Login</button>
+    </div>
+  </div>
+
+  <!-- PAINEL PRINCIPAL -->
+  <div id="pagina-painel" style="display: none;">
+    <div class="container mt-4">
+      <h3 class="mb-4">Painel de Provas</h3>
+      <div class="row g-3">
+        <div class="col-md-4"><button class="btn btn-outline-primary w-100 p-4" onclick="mostrarPagina('acessar-provas')"><i class="bi bi-book"></i> Acessar Provas</button></div>
+        <div class="col-md-4"><button class="btn btn-outline-primary w-100 p-4" onclick="mostrarPagina('criar-provas')"><i class="bi bi-plus-circle"></i> Criar Provas</button></div>
+        <div class="col-md-4"><button class="btn btn-outline-primary w-100 p-4" onclick="mostrarPagina('provas-enviadas')"><i class="bi bi-send"></i> Provas Enviadas</button></div>
+        <div class="col-md-4"><button class="btn btn-outline-primary w-100 p-4" onclick="mostrarPagina('corrigir')"><i class="bi bi-pencil-square"></i> Corrigir</button></div>
+        <div class="col-md-4"><button class="btn btn-outline-primary w-100 p-4" onclick="mostrarPagina('resultados')"><i class="bi bi-bar-chart"></i> Resultados</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pagina-secundaria" style="display: none;" class="container mt-4"></div>
+
+  <!-- MODAL GENÉRICO -->
+  <div class="modal fade" id="modalGenerico" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" id="modalContent"></div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAqFSCxeO4SzpTnWME8CohiE2aYnCzRjzA",
+      authDomain: "enem-casal.firebaseapp.com",
+      projectId: "enem-casal",
+      storageBucket: "enem-casal.firebasestorage.app",
+      messagingSenderId: "1071498104139",
+      appId: "1:1071498104139:web:7f3bfa438ebfc568e32cce"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let usuarioAtual = null;
+    let perfilAtual = null;
+
+    // Paleta de cores (16 cores)
+    const CORES_PALETA = [
+      '#1a3c6e', '#2b5ea7', '#4a90e2', '#5f9ea0', // azuis
+      '#e74c3c', '#c0392b', '#e67e22', '#f1c40f', // quentes
+      '#2ecc71', '#27ae60', '#1abc9c', '#16a085', // verdes
+      '#9b59b6', '#8e44ad', '#34495e', '#2c3e50'  // roxos/cinzas
+    ];
+
+    function aplicarTema(corBase, corClara) {
+      document.documentElement.style.setProperty('--cor-tema', corBase);
+      document.documentElement.style.setProperty('--cor-tema-claro', corClara);
+    }
+
+    function lightenColor(hex, percent) {
+      // Simples clareamento misturando com branco
+      const num = parseInt(hex.replace('#',''), 16);
+      const r = Math.min(255, (num >> 16) + 40);
+      const g = Math.min(255, ((num >> 8) & 0x00FF) + 40);
+      const b = Math.min(255, (num & 0x0000FF) + 40);
+      return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
+    }
+
+    function mostrarHeader(titulo = '') {
+      const h = document.getElementById('main-header');
+      if (titulo) {
+        h.style.display = 'flex';
+        document.getElementById('headerTitle').textContent = titulo;
+      } else {
+        h.style.display = 'none';
+      }
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        usuarioAtual = user;
+        const doc = await db.collection('usuarios').doc(user.uid).get();
+        if (doc.exists) {
+          perfilAtual = doc.data();
+          // Aplicar tema
+          if (perfilAtual.corTema) {
+            aplicarTema(perfilAtual.corTema, perfilAtual.corTemaClaro || lightenColor(perfilAtual.corTema));
+          }
+          // Atualizar cabeçalho
+          document.getElementById('headerFoto').src = perfilAtual.fotoURL || 'https://via.placeholder.com/36';
+          document.getElementById('headerNome').textContent = perfilAtual.nome || 'Usuário';
+        }
+        mostrarPainel();
+        iniciarListenerNotificacoes(user.uid);
+      } else {
+        usuarioAtual = null;
+        perfilAtual = null;
+        mostrarLogin();
+        aplicarTema('#1a3c6e', '#2b5ea7'); // volta ao padrão
+      }
+    });
+
+    function mostrarLogin() {
+      document.getElementById('pagina-login').style.display = 'block';
+      document.getElementById('pagina-cadastro').style.display = 'none';
+      document.getElementById('pagina-painel').style.display = 'none';
+      document.getElementById('pagina-secundaria').style.display = 'none';
+      mostrarHeader('');
+    }
+
+    function mostrarCadastro() {
+      document.getElementById('pagina-login').style.display = 'none';
+      document.getElementById('pagina-cadastro').style.display = 'block';
+      document.getElementById('pagina-painel').style.display = 'none';
+      document.getElementById('pagina-secundaria').style.display = 'none';
+      mostrarHeader('');
+    }
+
+    function login() {
+      const email = document.getElementById('loginEmail').value;
+      const senha = document.getElementById('loginSenha').value;
+      auth.signInWithEmailAndPassword(email, senha).catch(e => alert(e.message));
+    }
+
+    async function cadastrar() {
+      const nome = document.getElementById('cadNome').value;
+      const email = document.getElementById('cadEmail').value;
+      const senha = document.getElementById('cadSenha').value;
+      const fotoURL = document.getElementById('cadFotoURL').value || null;
+      try {
+        const cred = await auth.createUserWithEmailAndPassword(email, senha);
+        await db.collection('usuarios').doc(cred.user.uid).set({
+          nome, email, fotoURL,
+          criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+          corTema: '#1a3c6e',
+          corTemaClaro: '#2b5ea7'
+        });
+        auth.signOut();
+      } catch (e) { alert(e.message); }
+    }
+
+    function logout() { auth.signOut(); }
+
+    function mostrarPainel() {
+      document.getElementById('pagina-login').style.display = 'none';
+      document.getElementById('pagina-cadastro').style.display = 'none';
+      document.getElementById('pagina-painel').style.display = 'block';
+      document.getElementById('pagina-secundaria').style.display = 'none';
+      mostrarHeader('Painel');
+    }
+
+    async function mostrarPagina(pagina) {
+      document.getElementById('pagina-painel').style.display = 'none';
+      const container = document.getElementById('pagina-secundaria');
+      container.style.display = 'block';
+      container.innerHTML = '';
+      let titulo = '';
+      switch (pagina) {
+        case 'acessar-provas': titulo = 'Acessar Provas'; await carregarAcessarProvas(container); break;
+        case 'criar-provas': titulo = 'Criar Provas'; await carregarCriarProvas(container); break;
+        case 'provas-enviadas': titulo = 'Provas Enviadas'; await carregarProvasEnviadas(container); break;
+        case 'corrigir': titulo = 'Corrigir'; await carregarCorrigir(container); break;
+        case 'resultados': titulo = 'Resultados'; await carregarResultados(container); break;
+      }
+      mostrarHeader(titulo);
+    }
+
+    function iniciarListenerNotificacoes(uid) {
+      db.collection('usuarios').doc(uid).collection('notificacoes')
+        .orderBy('criadoEm', 'desc')
+        .onSnapshot(snap => {
+          snap.docChanges().forEach(change => {
+            if (change.type === 'added') {
+              const n = change.doc.data();
+              if (!n.vista) {
+                mostrarToast(n.titulo, n.subtitulo || '', n.tipo || 'info');
+                db.collection('usuarios').doc(uid).collection('notificacoes')
+                  .doc(change.doc.id).update({ vista: true });
+              }
+            }
+          });
+        });
+    }
+
+    function mostrarToast(titulo, subtitulo = '', tipo = 'info') {
+      const bg = tipo === 'success' ? 'bg-success' : tipo === 'warning' ? 'bg-warning' : '';
+      const icone = tipo === 'success' ? 'bi-check-circle' : 'bi-bell';
+      const toastEl = document.createElement('div');
+      // Usa a cor do tema para info
+      const estilo = tipo === 'info' ? `background-color: var(--cor-tema);` : '';
+      toastEl.className = `toast align-items-center text-white ${bg} border-0 show`;
+      toastEl.style = estilo;
+      toastEl.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body"><i class="bi ${icone} me-2"></i><strong>${titulo}</strong><br><small>${subtitulo}</small></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>`;
+      document.getElementById('toastContainer').appendChild(toastEl);
+      setTimeout(() => {
+        toastEl.classList.remove('show');
+        setTimeout(() => toastEl.remove(), 500);
+      }, 5000);
+      new bootstrap.Toast(toastEl, { autohide: true, delay: 5000 }).show();
+    }
+
+    function modal(titulo, corpoHTML, botoes = '') {
+      document.getElementById('modalContent').innerHTML = `
+        <div class="modal-header"><h5 class="modal-title">${titulo}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">${corpoHTML}</div>
+        <div class="modal-footer">${botoes}</div>`;
+      new bootstrap.Modal(document.getElementById('modalGenerico')).show();
+    }
+
+    function embaralharAlternativas(original) {
+      const letras = ['A', 'B', 'C', 'D', 'E'];
+      const textos = letras.map(l => original[`alternativa${l}`]);
+      for (let i = textos.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [textos[i], textos[j]] = [textos[j], textos[i]];
+      }
+      return letras.map((letraFixa, idx) => {
+        const texto = textos[idx];
+        const letraOrig = letras.find(l => original[`alternativa${l}`] === texto);
+        return { letra: letraFixa, texto, letraOriginal: letraOrig };
+      });
+    }
+
+    // ========== PERSONALIZAÇÃO ==========
+    function abrirPersonalizacao() {
+      const fotoAtual = perfilAtual?.fotoURL || 'https://via.placeholder.com/80';
+      const nomeAtual = perfilAtual?.nome || '';
+      const corAtual = perfilAtual?.corTema || '#1a3c6e';
+      
+      let paletaHTML = '<div class="paleta-cores">';
+      CORES_PALETA.forEach(cor => {
+        const selecionada = cor === corAtual ? 'selecionada' : '';
+        paletaHTML += `
+          <div class="cor-bolinha ${selecionada}" style="background-color: ${cor};" onclick="selecionarCor('${cor}', this)">
+            <i class="bi bi-check-lg"></i>
+          </div>`;
+      });
+      paletaHTML += '</div>';
+
+      const corpo = `
+        <div class="text-center mb-3">
+          <div class="foto-perfil-editar" onclick="alterarFoto()">
+            <img id="perfilFoto" src="${fotoAtual}" alt="Foto">
+            <div class="foto-overlay"><i class="bi bi-pencil-fill"></i></div>
+          </div>
+          <div class="mt-2">
+            <span id="perfilNome">${nomeAtual}</span>
+            <i class="bi bi-pencil-fill ms-2" style="cursor:pointer;" onclick="editarNome()"></i>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Escolha sua cor preferida</label>
+          ${paletaHTML}
+        </div>
+        <input type="hidden" id="novaCorTema" value="${corAtual}">
+        <input type="hidden" id="novaFotoURL" value="${fotoAtual}">
+        <input type="hidden" id="novoNome" value="${nomeAtual}">
+      `;
+      modal('Personalização', corpo, `
+        <button class="btn btn-primary" onclick="salvarPersonalizacao()">Salvar</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      `);
+      window.corSelecionada = corAtual;
+    }
+
+    function selecionarCor(cor, elemento) {
+      document.querySelectorAll('.cor-bolinha').forEach(el => el.classList.remove('selecionada'));
+      elemento.classList.add('selecionada');
+      document.getElementById('novaCorTema').value = cor;
+      window.corSelecionada = cor;
+    }
+
+    function alterarFoto() {
+      const novaURL = prompt('Insira o link da nova foto de perfil:', document.getElementById('novaFotoURL').value);
+      if (novaURL) {
+        document.getElementById('perfilFoto').src = novaURL;
+        document.getElementById('novaFotoURL').value = novaURL;
+      }
+    }
+
+    function editarNome() {
+      const novoNome = prompt('Editar nome:', document.getElementById('novoNome').value);
+      if (novoNome) {
+        document.getElementById('perfilNome').textContent = novoNome;
+        document.getElementById('novoNome').value = novoNome;
+      }
+    }
+
+    async function salvarPersonalizacao() {
+      const novaFoto = document.getElementById('novaFotoURL').value;
+      const novoNome = document.getElementById('novoNome').value;
+      const novaCor = document.getElementById('novaCorTema').value;
+      const novaCorClara = lightenColor(novaCor);
+      
+      try {
+        await db.collection('usuarios').doc(usuarioAtual.uid).update({
+          fotoURL: novaFoto,
+          nome: novoNome,
+          corTema: novaCor,
+          corTemaClaro: novaCorClara
+        });
+        // Atualiza perfil local
+        perfilAtual.fotoURL = novaFoto;
+        perfilAtual.nome = novoNome;
+        perfilAtual.corTema = novaCor;
+        perfilAtual.corTemaClaro = novaCorClara;
+        
+        aplicarTema(novaCor, novaCorClara);
+        document.getElementById('headerFoto').src = novaFoto;
+        document.getElementById('headerNome').textContent = novoNome;
+        
+        bootstrap.Modal.getInstance(document.getElementById('modalGenerico')).hide();
+        mostrarToast('Perfil atualizado!', '', 'success');
+      } catch (error) {
+        console.error(error);
+        alert('Erro ao salvar perfil.');
+      }
+    }
+
+    // ========== ACESSAR PROVAS ==========
+    async function carregarAcessarProvas(container) {
+      container.innerHTML = `
+        <h3>Provas Disponíveis</h3>
+        <div id="listaAcessar" class="row"></div>
+        <button class="btn btn-secondary mt-3" onclick="mostrarPainel()">Voltar</button>`;
+      try {
+        const snap = await db.collection('exames')
+          .where('destinatarios', 'array-contains', usuarioAtual.uid)
+          .where('concluida', '==', false)
+          .get();
+        const exames = [];
+        snap.forEach(d => exames.push({ id: d.id, ...d.data() }));
+        const lista = document.getElementById('listaAcessar');
+        if (exames.length === 0) {
+          lista.innerHTML = '<p>Nenhuma prova recebida.</p>';
+          return;
+        }
+        exames.forEach(e => {
+          lista.innerHTML += `
+            <div class="col-md-4 mb-3">
+              <div class="card p-3">
+                <h5>${e.nomeProva}</h5>
+                <p>Enviado por: ${e.criadorNome}</p>
+                <button class="btn btn-primary btn-sm" onclick="iniciarProva('${e.id}')">Realizar Prova</button>
+              </div>
+            </div>`;
+        });
+      } catch (error) {
+        console.error(error);
+        alert("Erro ao carregar provas. Provavelmente falta o índice composto (destinatarios Arrays + concluida Crescente).");
+      }
+    }
+
+    function iniciarProva(exameId) {
+      modal('Iniciar Prova', `
+        <p>Tem certeza que deseja iniciar a prova?</p>
+        <small class="text-muted">Ao iniciar, um cronômetro será acionado e não poderá ser pausado.</small>
+      `, `
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Agora Não</button>
+        <button class="btn btn-primary" onclick="confirmarIniciarProva('${exameId}')">Iniciar</button>
+      `);
+    }
+
+    async function confirmarIniciarProva(exameId) {
+      bootstrap.Modal.getInstance(document.getElementById('modalGenerico')).hide();
+      const exameSnap = await db.collection('exames').doc(exameId).get();
+      const exame = exameSnap.data();
+      const qSnap = await db.collection('exames').doc(exameId).collection('questoes').orderBy('ordem').get();
+      const questoes = [];
+      qSnap.forEach(q => questoes.push({ id: q.id, ...q.data() }));
+      
+      if (questoes.length === 0) {
+        alert("Esta prova ainda não possui questões. Aguarde o criador adicioná‑las.");
+        return;
+      }
+      
+      questoes.forEach(q => {
+        q.alternativasEmbaralhadas = embaralharAlternativas(q);
+      });
+
+      const subRef = db.collection('submissoes').doc();
+      await subRef.set({
+        exameId,
+        usuarioId: usuarioAtual.uid,
+        usuarioNome: perfilAtual.nome,
+        criadorId: exame.criadorId,
+        inicio: firebase.firestore.FieldValue.serverTimestamp(),
+        fim: null,
+        respostas: {},
+        redacao: '',
+        concluida: false,
+        corrigida: false,
+        tempoLimite: (exame.tempoLimite || 60) * 60
+      });
+      db.collection('usuarios').doc(exame.criadorId).collection('notificacoes').add({
+        titulo: `${perfilAtual.nome} iniciou a prova!`,
+        subtitulo: `Prova: ${exame.nomeProva}`,
+        tipo: 'info',
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        vista: false
+      });
+      mostrarTelaProva(exameId, questoes, subRef.id, exame);
+    }
+
+    // ========== TELA DE PROVA ==========
+    function mostrarTelaProva(exameId, questoes, subId, exame) {
+      mostrarHeader('');
+      const container = document.getElementById('pagina-secundaria');
+      container.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3>${exame.nomeProva}</h3>
+          <div><span id="timer">--:--</span></div>
+        </div>
+        <div class="d-flex flex-wrap mb-3" id="botoesQuestoes"></div>
+        <div id="areaQuestao"></div>
+        <div class="mt-3 d-flex justify-content-between">
+          <button class="btn btn-outline-secondary" id="btnRetornar" disabled>Retornar</button>
+          <button class="btn btn-outline-warning" id="btnPular">Pular</button>
+          <button class="btn btn-outline-primary" id="btnAvancar">Avançar</button>
+        </div>
+      `;
+
+      const estado = {
+        questoes,
+        indiceAtual: 0,
+        respostas: Array(questoes.length).fill(null),
+        redacao: '',
+        submissaoId: subId,
+        exameId,
+        timer: (exame.tempoLimite || 60) * 60,
+        intervalo: null
+      };
+      estado.intervalo = setInterval(() => {
+        estado.timer--;
+        if (estado.timer <= 0) {
+          clearInterval(estado.intervalo);
+          finalizarProvaPorTempo(estado);
+        }
+        const min = Math.floor(estado.timer / 60).toString().padStart(2, '0');
+        const seg = (estado.timer % 60).toString().padStart(2, '0');
+        document.getElementById('timer').textContent = `${min}:${seg}`;
+      }, 1000);
+      window.estadoProva = estado;
+      renderizarQuestao(estado);
+      renderizarBotoesQuestoes(estado);
+      document.getElementById('btnRetornar').onclick = () => navegarQuestao(estado, -1);
+      document.getElementById('btnPular').onclick = () => navegarQuestao(estado, 1);
+      document.getElementById('btnAvancar').onclick = () => navegarQuestao(estado, 1);
+    }
+
+    function renderizarBotoesQuestoes(estado) {
+      const div = document.getElementById('botoesQuestoes');
+      div.innerHTML = '';
+      estado.questoes.forEach((q, idx) => {
+        const span = document.createElement('span');
+        span.className = `questao-num ${estado.respostas[idx] !== null ? 'respondida' : ''} ${idx === estado.indiceAtual ? 'atual' : ''}`;
+        span.textContent = idx + 1;
+        span.onclick = () => {
+          estado.indiceAtual = idx;
+          renderizarQuestao(estado);
+          renderizarBotoesQuestoes(estado);
+        };
+        div.appendChild(span);
+      });
+      const spanRed = document.createElement('span');
+      spanRed.className = `questao-num ${estado.redacao !== '' ? 'respondida' : ''} ${estado.indiceAtual === estado.questoes.length ? 'atual' : ''}`;
+      spanRed.textContent = '✎';
+      spanRed.onclick = () => {
+        estado.indiceAtual = estado.questoes.length;
+        renderizarQuestao(estado);
+        renderizarBotoesQuestoes(estado);
+      };
+      div.appendChild(spanRed);
+    }
+
+    function renderizarQuestao(estado) {
+      const area = document.getElementById('areaQuestao');
+      if (estado.indiceAtual === estado.questoes.length) {
+        area.innerHTML = `
+          <h4>Redação</h4>
+          <textarea id="redacaoTexto" class="form-control" rows="10" placeholder="Escreva sua redação aqui...">${estado.redacao}</textarea>`;
+        document.getElementById('btnAvancar').style.display = 'none';
+        document.getElementById('btnPular').style.display = 'none';
+        if (!document.getElementById('btnConcluir')) {
+          const btn = document.createElement('button');
+          btn.id = 'btnConcluir';
+          btn.className = 'btn btn-success';
+          btn.textContent = 'Concluir Prova';
+          btn.onclick = () => concluirProva(estado);
+          document.querySelector('#pagina-secundaria .d-flex').appendChild(btn);
+        }
+        document.getElementById('redacaoTexto').addEventListener('input', e => estado.redacao = e.target.value);
+      } else {
+        const q = estado.questoes[estado.indiceAtual];
+        document.getElementById('btnAvancar').style.display = 'block';
+        document.getElementById('btnPular').style.display = 'block';
+        const bc = document.getElementById('btnConcluir');
+        if (bc) bc.remove();
+        let html = `<h5>Questão ${estado.indiceAtual+1} – ${q.area}</h5><p>${q.enunciado}</p><div>`;
+        q.alternativasEmbaralhadas.forEach(alt => {
+          const sel = estado.respostas[estado.indiceAtual] === alt.letraOriginal;
+          html += `<div class="alternativa-item ${sel ? 'selecionada' : ''}" onclick="marcarAlternativa(${estado.indiceAtual}, '${alt.letraOriginal}')">
+            <strong>${alt.letra}</strong> ${alt.texto}
+          </div>`;
+        });
+        html += '</div>';
+        area.innerHTML = html;
+      }
+      document.getElementById('btnRetornar').disabled = estado.indiceAtual === 0;
+    }
+
+    function marcarAlternativa(idx, letraOriginal) {
+      const estado = window.estadoProva;
+      estado.respostas[idx] = letraOriginal;
+      renderizarQuestao(estado);
+      renderizarBotoesQuestoes(estado);
+    }
+
+    function navegarQuestao(estado, delta) {
+      estado.indiceAtual += delta;
+      if (estado.indiceAtual < 0) estado.indiceAtual = 0;
+      if (estado.indiceAtual > estado.questoes.length) estado.indiceAtual = estado.questoes.length;
+      renderizarQuestao(estado);
+      renderizarBotoesQuestoes(estado);
+    }
+
+    function concluirProva(estado) {
+      modal('Concluir Prova', 'Gostaria de enviar a prova agora?', `
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
+        <button class="btn btn-primary" onclick="enviarProvaFinalizada()">Sim</button>`);
+      window.modalEstado = estado;
+    }
+
+    async function enviarProvaFinalizada() {
+      const estado = window.modalEstado;
+      clearInterval(estado.intervalo);
+      bootstrap.Modal.getInstance(document.getElementById('modalGenerico')).hide();
+      await db.collection('submissoes').doc(estado.submissaoId).update({
+        respostas: estado.respostas,
+        redacao: estado.redacao,
+        fim: firebase.firestore.FieldValue.serverTimestamp(),
+        concluida: true
+      });
+      const exSnap = await db.collection('exames').doc(estado.exameId).get();
+      const criadorId = exSnap.data().criadorId;
+      db.collection('usuarios').doc(criadorId).collection('notificacoes').add({
+        titulo: `${perfilAtual.nome} concluiu a prova!`,
+        subtitulo: 'Aguardando correção.',
+        tipo: 'success',
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        vista: false
+      });
+      mostrarToast('Prova enviada com sucesso!', '', 'success');
+      mostrarPainel();
+    }
+
+    async function finalizarProvaPorTempo(estado) {
+      modal('Tempo Encerrado', 'O tempo acabou. Suas respostas serão enviadas automaticamente.', '');
+      await db.collection('submissoes').doc(estado.submissaoId).update({
+        respostas: estado.respostas,
+        redacao: estado.redacao,
+        fim: firebase.firestore.FieldValue.serverTimestamp(),
+        concluida: true,
+        tempoEsgotado: true
+      });
+      setTimeout(() => {
+        bootstrap.Modal.getInstance(document.getElementById('modalGenerico')).hide();
+        mostrarPainel();
+      }, 3000);
+    }
+
+    // ========== CRIAR PROVAS ==========
+    async function carregarCriarProvas(container) {
+      container.innerHTML = `
+        <h3>Minhas Provas</h3>
+        <button class="btn btn-primary mb-3" onclick="novaProva()">Nova Prova</button>
+        <div id="listaCriadas" class="row"></div>
+        <button class="btn btn-secondary mt-3" onclick="mostrarPainel()">Voltar</button>`;
+      const snap = await db.collection('exames').where('criadorId', '==', usuarioAtual.uid).get();
+      const exames = [];
+      snap.forEach(d => exames.push({ id: d.id, ...d.data() }));
+      const lista = document.getElementById('listaCriadas');
+      if (exames.length === 0) {
+        lista.innerHTML = '<p>Você ainda não criou nenhuma prova.</p>';
+        return;
+      }
+      exames.forEach(e => {
+        lista.innerHTML += `
+          <div class="col-md-6 mb-3">
+            <div class="card p-3">
+              <h5>${e.nomeProva}</h5>
+              <p>Questões: ${e.qtdQuestoes || 0} | Tempo: ${e.tempoLimite || 60} min</p>
+              <button class="btn btn-outline-secondary btn-sm" onclick="editarProva('${e.id}')">Editar</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="deletarProva('${e.id}')">Deletar</button>
+              <button class="btn btn-outline-primary btn-sm" onclick="enviarProva('${e.id}')">Enviar Prova</button>
+            </div>
+          </div>`;
+      });
+    }
+
+    function novaProva() {
+      modal('Nova Prova', `
+        <div class="mb-3">
+          <input type="text" id="nomeProva" class="form-control" placeholder="Nome da prova">
+        </div>
+        <div class="mb-3">
+          <label>Tempo (minutos)</label>
+          <input type="number" id="tempoProva" class="form-control" value="60" min="1" max="300">
+        </div>
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" id="usarTRI" checked>
+          <label class="form-check-label">Usar sistema TRI</label>
+        </div>`, `
+        <button class="btn btn-primary" onclick="salvarNovaProva()">Criar</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>`);
+    }
+
+    async function salvarNovaProva() {
+      const nome = document.getElementById('nomeProva')?.value;
+      const usarTRI = document.getElementById('usarTRI')?.checked;
+      const tempoLimite = parseInt(document.getElementById('tempoProva')?.value) || 60;
+      if (!nome) return alert('Digite um nome.');
+      try {
+        const ref = await db.collection('exames').add({
+          nomeProva: nome,
+          criadorId: usuarioAtual.uid,
+          criadorNome: perfilAtual.nome,
+          usarTRI,
+          qtdQuestoes: 0,
+          destinatarios: [],
+          concluida: false,
+          tempoLimite: tempoLimite,
+          criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        bootstrap.Modal.getInstance(document.getElementById('modalGenerico')).hide();
+        abrirEditorQuestoes(ref.id);
+      } catch (error) {
+        console.error(error);
+        alert("Erro ao criar prova.");
+      }
+    }
+
+    function editarProva(exameId) { abrirEditorQuestoes(exameId); }
+
+    async function deletarProva(exameId) {
+      if (confirm('Deletar prova permanentemente?')) {
+        await db.collection('exames').doc(exameId).delete();
+        mostrarPagina('criar-provas');
+      }
+    }
+
+    async function enviarProva(exameId) {
+      const snap = await db.collection('usuarios').get();
+      const users = [];
+      snap.forEach(d => {
+        if (d.id !== usuarioAtual.uid) users.push({ id: d.id, nome: d.data().nome });
+      });
+      const checkboxes = users.map(u => `
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="${u.id}" id="usr_${u.id}">
+          <label class="form-check-label" for="usr_${u.id}">${u.nome}</label>
+        </div>`).join('');
+      modal('Enviar Prova Para', checkboxes, `
+        <button class="btn btn-primary" onclick="confirmarEnvio('${exameId}')">Enviar</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>`);
+    }
+
+    async function confirmarEnvio(exameId) {
+      const checks = document.querySelectorAll('#modalGenerico input[type=checkbox]:checked');
+      const destinatarios = Array.from(checks).map(c => c.value);
+      if (destinatarios.length === 0) return alert('Selecione um destinatário.');
+      try {
+        await db.collection('exames').doc(exameId).update({
+          destinatarios: firebase.firestore.FieldValue.arrayUnion(...destinatarios)
+        });
+        for (const uidDest of destinatarios) {
+          await db.collection('usuarios').doc(uidDest).collection('notificacoes').add({
+            titulo: 'Prova nova recebida!',
+            subtitulo: `Enviado por: ${perfilAtual.nome}`,
+            tipo: 'info',
+            criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+            vista: false
+          });
+        }
+        bootstrap.Modal.getInstance(document.getElementById('modalGenerico')).hide();
+        mostrarToast('Prova enviada com sucesso!', '', 'success');
+      } catch (error) {
+        console.error(error);
+        alert("Erro ao enviar prova.");
+      }
+    }
+
+    // ========== EDITOR DE QUESTÕES ==========
+    function abrirEditorQuestoes(exameId) {
+      document.getElementById('pagina-secundaria').innerHTML = `
+        <h3>Desenvolver Questões</h3>
+        <div id="listaQuestoes" class="mb-3"></div>
+        <button class="btn btn-primary" onclick="novaQuestao('${exameId}')">Nova Questão</button>
+        <button class="btn btn-success mt-2" onclick="salvarProva('${exameId}')">Salvar Prova</button>
+        <button class="btn btn-secondary mt-2" onclick="mostrarPagina('criar-provas')">Voltar</button>`;
+      carregarQuestoes(exameId);
+    }
+
+    async function carregarQuestoes(exameId) {
+      const snap = await db.collection('exames').doc(exameId).collection('questoes').orderBy('ordem').get();
+      const div = document.getElementById('listaQuestoes');
+      div.innerHTML = '';
+      if (snap.empty) {
+        div.innerHTML = '<p>Nenhuma questão adicionada ainda.</p>';
+        return;
+      }
+      snap.forEach(q => {
+        const d = q.data();
+        div.innerHTML += `
+          <div class="card p-2 mb-2">
+            <strong>${d.area} - ${d.dificuldade}</strong>
+            <p>${d.enunciado}</p>
+            <small>Ordem: ${d.ordem}</small>
+          </div>`;
+      });
+    }
+
+    function novaQuestao(exameId) {
+      modal('Nova Questão', `
+        <div class="mb-3">
+          <label>Área do conhecimento</label>
+          <select id="qArea" class="form-select">
+            <option value="Conhecimentos Gerais">Conhecimentos Gerais</option>
+            <option value="Conhecimento do Casal">Conhecimento do Casal</option>
+            <option value="Momentos">Momentos</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label>Dificuldade</label>
+          <select id="qDificuldade" class="form-select">
+            <option>Fácil</option><option>Média</option><option>Difícil</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <textarea id="qEnunciado" class="form-control" rows="3" placeholder="Enunciado"></textarea>
+        </div>
+        <div class="mb-3">
+          <input id="altA" class="form-control mb-1" placeholder="Alternativa A (corretíssima)">
+          <input id="altB" class="form-control mb-1" placeholder="Alternativa B (próxima da correta)">
+          <input id="altC" class="form-control mb-1" placeholder="Alternativa C (enganosa)">
+          <input id="altD" class="form-control mb-1" placeholder="Alternativa D (ruim)">
+          <input id="altE" class="form-control mb-1" placeholder="Alternativa E (idiota)">
+        </div>`, `
+        <button class="btn btn-primary" onclick="salvarQuestao('${exameId}')">Salvar</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>`);
+    }
+
+    async function salvarQuestao(exameId) {
+      const area = document.getElementById('qArea').value;
+      const dificuldade = document.getElementById('qDificuldade').value;
+      const enunciado = document.getElementById('qEnunciado').value;
+      const A = document.getElementById('altA').value;
+      const B = document.getElementById('altB').value;
+      const C = document.getElementById('altC').value;
+      const D = document.getElementById('altD').value;
+      const E = document.getElementById('altE').value;
+      if (!enunciado || !A || !B || !C || !D || !E) return alert('Preencha todos os campos.');
+      try {
+        const ref = db.collection('exames').doc(exameId).collection('questoes');
+        const snap = await ref.orderBy('ordem', 'desc').limit(1).get();
+        let novaOrdem = 1;
+        if (!snap.empty) novaOrdem = snap.docs[0].data().ordem + 1;
+        await ref.add({
+          area, dificuldade, enunciado,
+          alternativaA: A, alternativaB: B, alternativaC: C, alternativaD: D, alternativaE: E,
+          ordem: novaOrdem
+        });
+        bootstrap.Modal.getInstance(document.getElementById('modalGenerico')).hide();
+        carregarQuestoes(exameId);
+        const count = (await ref.get()).size;
+        await db.collection('exames').doc(exameId).update({ qtdQuestoes: count });
+      } catch (error) {
+        console.error(error);
+        alert("Erro ao salvar questão.");
+      }
+    }
+
+    async function salvarProva(exameId) {
+      alert('Prova salva!');
+      mostrarPagina('criar-provas');
+    }
+
+    // ========== PROVAS ENVIADAS ==========
+    async function carregarProvasEnviadas(container) {
+      container.innerHTML = `
+        <h3>Provas Enviadas</h3>
+        <div id="listaEnviadas" class="row"></div>
+        <button class="btn btn-secondary mt-3" onclick="mostrarPainel()">Voltar</button>`;
+      const snap = await db.collection('exames')
+        .where('criadorId', '==', usuarioAtual.uid)
+        .get();
+      const exames = [];
+      snap.forEach(d => {
+        const e = d.data();
+        if (e.destinatarios && e.destinatarios.length > 0) {
+          exames.push({ id: d.id, ...e });
+        }
+      });
+      const lista = document.getElementById('listaEnviadas');
+      if (exames.length === 0) {
+        lista.innerHTML = '<p>Você ainda não enviou nenhuma prova.</p>';
+        return;
+      }
+      for (const e of exames) {
+        const nomesDest = [];
+        for (const uid of e.destinatarios) {
+          const userDoc = await db.collection('usuarios').doc(uid).get();
+          if (userDoc.exists) nomesDest.push(userDoc.data().nome);
+          else nomesDest.push('Usuário desconhecido');
+        }
+        lista.innerHTML += `
+          <div class="col-md-6 mb-3">
+            <div class="card p-3">
+              <h5>${e.nomeProva}</h5>
+              <p>Enviada para: ${nomesDest.join(', ')}</p>
+            </div>
+          </div>`;
+      }
+    }
+
+    // ========== CORRIGIR ==========
+    async function carregarCorrigir(container) {
+      container.innerHTML = `
+        <h3>Correções Pendentes</h3>
+        <div id="listaCorrigir"></div>
+        <button class="btn btn-secondary mt-3" onclick="mostrarPainel()">Voltar</button>`;
+      try {
+        const snap = await db.collection('submissoes')
+          .where('criadorId', '==', usuarioAtual.uid)
+          .where('concluida', '==', true)
+          .where('corrigida', '==', false)
+          .get();
+        const div = document.getElementById('listaCorrigir');
+        if (snap.empty) {
+          div.innerHTML = '<p>Nenhuma prova para corrigir.</p>';
+          return;
+        }
+        snap.forEach(doc => {
+          const s = doc.data();
+          div.innerHTML += `
+            <div class="card p-3 mb-2">
+              <p><strong>Prova:</strong> ${s.exameId}</p>
+              <p><strong>Aluno:</strong> ${s.usuarioNome}</p>
+              <button class="btn btn-primary btn-sm" onclick="iniciarCorrecao('${doc.id}')">Corrigir</button>
+            </div>`;
+        });
+      } catch (error) {
+        console.error(error);
+        alert("Erro ao carregar correções. Verifique o índice composto (criadorId, concluida, corrigida).");
+      }
+    }
+
+    // (funções de correção e resultados mantidas conforme a versão anterior, já completas)
+    // ... (iniciarCorrecao, renderizarCorrecaoQuestao, navegarCorrecao, etc. – omitidas por brevidade, mas presentes no código final)
+    // Elas são exatamente as mesmas da última versão funcional.
+    // Vamos incluí-las por completo para garantir:
+    async function iniciarCorrecao(subId) {
+      const subSnap = await db.collection('submissoes').doc(subId).get();
+      const sub = subSnap.data();
+      const exSnap = await db.collection('exames').doc(sub.exameId).get();
+      const exame = exSnap.data();
+      const qSnap = await db.collection('exames').doc(sub.exameId).collection('questoes').orderBy('ordem').get();
+      const questoes = [];
+      qSnap.forEach(q => questoes.push({ id: q.id, ...q.data() }));
+      document.getElementById('pagina-secundaria').innerHTML = `
+        <h3>Correção – ${exame.nomeProva} (${sub.usuarioNome})</h3>
+        <div id="correcaoQuestoes"></div>
+        <div class="mt-3 d-flex justify-content-between">
+          <button class="btn btn-outline-secondary" onclick="navegarCorrecao(-1)">Retornar</button>
+          <button class="btn btn-outline-primary" onclick="navegarCorrecao(1)">Próximo</button>
+        </div>
+        <div class="mt-2"><button class="btn btn-info" onclick="verRedacaoCorrecao()">Ler Redação</button></div>`;
+      window.correcaoState = { submissaoId: subId, sub, questoes, indice: 0, exame };
+      renderizarCorrecaoQuestao();
+    }
+
+    function renderizarCorrecaoQuestao() {
+      const state = window.correcaoState;
+      const q = state.questoes[state.indice];
+      const resp = state.sub.respostas[state.indice];
+      const correta = 'A';
+      let html = `<h5>Questão ${state.indice+1} – ${q.area}</h5><p>${q.enunciado}</p><div>`;
+      ['A','B','C','D','E'].forEach(letra => {
+        const texto = q[`alternativa${letra}`];
+        let cls = '';
+        if (letra === correta) cls = 'correta';
+        else if (letra === resp) cls = 'incorreta';
+        html += `<div class="alternativa-item ${cls}">${letra}) ${texto}</div>`;
+      });
+      html += '</div>';
+      document.getElementById('correcaoQuestoes').innerHTML = html;
+    }
+
+    function navegarCorrecao(delta) {
+      const s = window.correcaoState;
+      s.indice += delta;
+      if (s.indice < 0) s.indice = 0;
+      if (s.indice >= s.questoes.length) s.indice = s.questoes.length-1;
+      renderizarCorrecaoQuestao();
+    }
+
+    function verRedacaoCorrecao() {
+      modal('Redação', `<p>${window.correcaoState.sub.redacao || 'Nenhuma redação.'}</p>`, `
+        <button class="btn btn-primary" onclick="mostrarNotaCorrecao()">Ver Nota</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>`);
+    }
+
+    async function mostrarNotaCorrecao() {
+      const state = window.correcaoState;
+      const exame = state.exame;
+      const sub = state.sub;
+      const questoes = state.questoes;
+      const usarTRI = exame.usarTRI !== false;
+      const areas = {};
+      questoes.forEach((q, i) => {
+        if (!areas[q.area]) areas[q.area] = { questoes: [], respostas: [] };
+        areas[q.area].questoes.push(q);
+        areas[q.area].respostas.push(sub.respostas[i] || null);
+      });
+      let soma = 0, cont = 0;
+      for (const a in areas) {
+        const nota = calcularNotaArea(areas[a].questoes, areas[a].respostas, usarTRI);
+        areas[a].nota = nota;
+        soma += nota;
+        cont++;
+      }
+      const media = cont ? (soma + 1000) / (cont + 1) : 1000;
+      let corpo = `<div class="text-center">
+        <img src="${sub.usuarioFotoURL || perfilAtual?.fotoURL || 'https://via.placeholder.com/80'}" class="rounded-circle" width="80" onerror="this.src='https://via.placeholder.com/80'">
+        <h5>${sub.usuarioNome}</h5></div><hr>`;
+      for (const a in areas) {
+        const ac = areas[a].respostas.filter(r => r==='A').length;
+        const tot = areas[a].questoes.length;
+        corpo += `<p><strong>${a}:</strong> ${areas[a].nota} (${ac}/${tot})</p>`;
+      }
+      corpo += `<p><strong>Redação:</strong> 1000</p>`;
+      corpo += `<p><strong>Média Geral:</strong> ${media.toFixed(1)}</p>`;
+      corpo += `<div class="mb-3"><label>Vista Pedagógica do Criador</label><textarea id="vistaCriador" class="form-control" rows="3"></textarea></div>`;
+      modal('Resultado', corpo, `
+        <button class="btn btn-primary" onclick="enviarNotaFinal()">Enviar Nota</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>`);
+      window.notaCorrecaoState = { state, areas, media };
+    }
+
+    async function enviarNotaFinal() {
+      const { state, areas, media } = window.notaCorrecaoState;
+      const vista = document.getElementById('vistaCriador').value;
+      const resultado = { areas, redacao: 1000, mediaGeral: media, vistaCriador: vista, criadoEm: firebase.firestore.FieldValue.serverTimestamp() };
+      await db.collection('submissoes').doc(state.submissaoId).update({ resultado, corrigida: true });
+      db.collection('usuarios').doc(state.sub.usuarioId).collection('notificacoes').add({
+        titulo: 'Nota recebida!',
+        subtitulo: 'Prova corrigida.',
+        tipo: 'success',
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        vista: false
+      });
+      mostrarToast('Nota enviada com sucesso!', '', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('modalGenerico')).hide();
+      mostrarPagina('corrigir');
+    }
+
+    function calcularNotaArea(questoes, respostas, usarTRI) {
+      if (!usarTRI) {
+        const acertos = respostas.filter(r => r === 'A').length;
+        return Math.round(300 + (acertos / questoes.length) * 700);
+      }
+      const N = questoes.length;
+      const base = 1000 / N;
+      let raw = 0, countE = 0;
+      let easyC = 0, easyT = 0, medC = 0, medT = 0, hardC = 0, hardT = 0;
+      questoes.forEach((q, i) => {
+        const r = respostas[i];
+        let peso = 0;
+        if (r === 'A') peso = 1;
+        else if (r === 'B') peso = 0.75;
+        else if (r === 'C') peso = 0.5;
+        else if (r === 'D') peso = 0.25;
+        else if (r === 'E') { peso = 0; countE++; }
+        raw += base * peso;
+        if (q.dificuldade === 'Fácil') { easyT++; if (r === 'A') easyC++; }
+        else if (q.dificuldade === 'Média') { medT++; if (r === 'A') medC++; }
+        else if (q.dificuldade === 'Difícil') { hardT++; if (r === 'A') hardC++; }
+      });
+      raw -= countE * (base * 0.5);
+      let pen = 0;
+      const er = easyT ? easyC/easyT : 0;
+      const mr = medT ? medC/medT : 0;
+      const hr = hardT ? hardC/hardT : 0;
+      if (er < 0.5 && hr > 0.5) pen = 200;
+      else if (er < mr && hr > mr) pen = 150;
+      raw -= pen;
+      return Math.max(0, Math.min(1000, Math.round(raw)));
+    }
+
+    // ========== RESULTADOS ==========
+    async function carregarResultados(container) {
+      container.innerHTML = `
+        <h3>Meus Resultados</h3>
+        <div id="listaResultados"></div>
+        <button class="btn btn-secondary mt-3" onclick="mostrarPainel()">Voltar</button>`;
+      try {
+        const snap = await db.collection('submissoes')
+          .where('usuarioId', '==', usuarioAtual.uid)
+          .where('corrigida', '==', true)
+          .get();
+        const div = document.getElementById('listaResultados');
+        if (snap.empty) {
+          div.innerHTML = '<p>Nenhum resultado disponível.</p>';
+          return;
+        }
+        snap.forEach(doc => {
+          const sub = doc.data();
+          div.innerHTML += `
+            <div class="card p-3 mb-2">
+              <h5>Prova: ${sub.exameId}</h5>
+              <button class="btn btn-primary btn-sm" onclick="verResultado('${doc.id}')">Ver Nota</button>
+            </div>`;
+        });
+      } catch (error) {
+        console.error(error);
+        alert("Erro ao carregar resultados. Verifique o índice composto (usuarioId, corrigida).");
+      }
+    }
+
+    async function verResultado(subId) {
+      const d = await db.collection('submissoes').doc(subId).get();
+      const sub = d.data();
+      const res = sub.resultado;
+      if (!res) return alert('Resultado ainda não disponível.');
+      const exSnap = await db.collection('exames').doc(sub.exameId).get();
+      const criador = exSnap.exists ? exSnap.data().criadorNome : 'Desconhecido';
+      let corpo = `<div class="text-center"><h5>${sub.usuarioNome}</h5><p>Prova de: ${criador}</p></div><hr>`;
+      for (const a in res.areas) {
+        const ac = res.areas[a].respostas.filter(r => r==='A').length;
+        const tot = res.areas[a].questoes.length;
+        corpo += `<p><strong>${a}:</strong> <span class="blur" onclick="this.classList.toggle('blur')">${res.areas[a].nota} (${ac}/${tot})</span></p>`;
+      }
+      corpo += `<p><strong>Redação:</strong> 1000</p><p><strong>Média Geral:</strong> ${res.mediaGeral.toFixed(1)}</p>`;
+      corpo += `<h5>Vista do Criador</h5><p>${res.vistaCriador || 'Nenhum comentário.'}</p>`;
+      corpo += `<h5>Vista do Sistema</h5><p>${gerarVistaSistema(res)}</p>`;
+      modal('Resultado', corpo, '<button class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>');
+    }
+
+    function gerarVistaSistema(res) {
+      let txt = '';
+      for (const a in res.areas) {
+        const ac = res.areas[a].respostas.filter(r => r==='A').length;
+        const tot = res.areas[a].questoes.length;
+        txt += `${a}: ${ac}/${tot} corretas. `;
+        const easy = res.areas[a].questoes.filter(q => q.dificuldade==='Fácil');
+        const acEasy = easy.filter((q,i) => res.areas[a].respostas[i]==='A').length;
+        if (easy.length && acEasy < easy.length/2) txt += 'Dificuldade nas fáceis (possível chute). ';
+      }
+      return txt || 'Análise indisponível.';
+    }
+
+    window.onload = () => mostrarLogin();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
