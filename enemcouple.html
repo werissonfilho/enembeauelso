@@ -138,7 +138,6 @@
       cursor: pointer;
       user-select: none;
     }
-    /* Personalização */
     .foto-perfil-editar {
       position: relative;
       display: inline-block;
@@ -287,12 +286,11 @@
     let usuarioAtual = null;
     let perfilAtual = null;
 
-    // Paleta de cores (16 cores)
     const CORES_PALETA = [
-      '#1a3c6e', '#2b5ea7', '#4a90e2', '#5f9ea0', // azuis
-      '#e74c3c', '#c0392b', '#e67e22', '#f1c40f', // quentes
-      '#2ecc71', '#27ae60', '#1abc9c', '#16a085', // verdes
-      '#9b59b6', '#8e44ad', '#34495e', '#2c3e50'  // roxos/cinzas
+      '#1a3c6e', '#2b5ea7', '#4a90e2', '#5f9ea0',
+      '#e74c3c', '#c0392b', '#e67e22', '#f1c40f',
+      '#2ecc71', '#27ae60', '#1abc9c', '#16a085',
+      '#9b59b6', '#8e44ad', '#34495e', '#2c3e50'
     ];
 
     function aplicarTema(corBase, corClara) {
@@ -301,7 +299,6 @@
     }
 
     function lightenColor(hex, percent) {
-      // Simples clareamento misturando com branco
       const num = parseInt(hex.replace('#',''), 16);
       const r = Math.min(255, (num >> 16) + 40);
       const g = Math.min(255, ((num >> 8) & 0x00FF) + 40);
@@ -325,11 +322,9 @@
         const doc = await db.collection('usuarios').doc(user.uid).get();
         if (doc.exists) {
           perfilAtual = doc.data();
-          // Aplicar tema
           if (perfilAtual.corTema) {
             aplicarTema(perfilAtual.corTema, perfilAtual.corTemaClaro || lightenColor(perfilAtual.corTema));
           }
-          // Atualizar cabeçalho
           document.getElementById('headerFoto').src = perfilAtual.fotoURL || 'https://via.placeholder.com/36';
           document.getElementById('headerNome').textContent = perfilAtual.nome || 'Usuário';
         }
@@ -339,7 +334,7 @@
         usuarioAtual = null;
         perfilAtual = null;
         mostrarLogin();
-        aplicarTema('#1a3c6e', '#2b5ea7'); // volta ao padrão
+        aplicarTema('#1a3c6e', '#2b5ea7');
       }
     });
 
@@ -374,9 +369,9 @@
         const cred = await auth.createUserWithEmailAndPassword(email, senha);
         await db.collection('usuarios').doc(cred.user.uid).set({
           nome, email, fotoURL,
-          criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
           corTema: '#1a3c6e',
-          corTemaClaro: '#2b5ea7'
+          corTemaClaro: '#2b5ea7',
+          criadoEm: firebase.firestore.FieldValue.serverTimestamp()
         });
         auth.signOut();
       } catch (e) { alert(e.message); }
@@ -429,7 +424,6 @@
       const bg = tipo === 'success' ? 'bg-success' : tipo === 'warning' ? 'bg-warning' : '';
       const icone = tipo === 'success' ? 'bi-check-circle' : 'bi-bell';
       const toastEl = document.createElement('div');
-      // Usa a cor do tema para info
       const estilo = tipo === 'info' ? `background-color: var(--cor-tema);` : '';
       toastEl.className = `toast align-items-center text-white ${bg} border-0 show`;
       toastEl.style = estilo;
@@ -473,7 +467,7 @@
       const fotoAtual = perfilAtual?.fotoURL || 'https://via.placeholder.com/80';
       const nomeAtual = perfilAtual?.nome || '';
       const corAtual = perfilAtual?.corTema || '#1a3c6e';
-      
+
       let paletaHTML = '<div class="paleta-cores">';
       CORES_PALETA.forEach(cor => {
         const selecionada = cor === corAtual ? 'selecionada' : '';
@@ -538,7 +532,7 @@
       const novoNome = document.getElementById('novoNome').value;
       const novaCor = document.getElementById('novaCorTema').value;
       const novaCorClara = lightenColor(novaCor);
-      
+
       try {
         await db.collection('usuarios').doc(usuarioAtual.uid).update({
           fotoURL: novaFoto,
@@ -546,16 +540,15 @@
           corTema: novaCor,
           corTemaClaro: novaCorClara
         });
-        // Atualiza perfil local
         perfilAtual.fotoURL = novaFoto;
         perfilAtual.nome = novoNome;
         perfilAtual.corTema = novaCor;
         perfilAtual.corTemaClaro = novaCorClara;
-        
+
         aplicarTema(novaCor, novaCorClara);
         document.getElementById('headerFoto').src = novaFoto;
         document.getElementById('headerNome').textContent = novoNome;
-        
+
         bootstrap.Modal.getInstance(document.getElementById('modalGenerico')).hide();
         mostrarToast('Perfil atualizado!', '', 'success');
       } catch (error) {
@@ -615,12 +608,12 @@
       const qSnap = await db.collection('exames').doc(exameId).collection('questoes').orderBy('ordem').get();
       const questoes = [];
       qSnap.forEach(q => questoes.push({ id: q.id, ...q.data() }));
-      
+
       if (questoes.length === 0) {
         alert("Esta prova ainda não possui questões. Aguarde o criador adicioná‑las.");
         return;
       }
-      
+
       questoes.forEach(q => {
         q.alternativasEmbaralhadas = embaralharAlternativas(q);
       });
@@ -959,10 +952,13 @@
       snap.forEach(q => {
         const d = q.data();
         div.innerHTML += `
-          <div class="card p-2 mb-2">
-            <strong>${d.area} - ${d.dificuldade}</strong>
-            <p>${d.enunciado}</p>
-            <small>Ordem: ${d.ordem}</small>
+          <div class="card p-2 mb-2 d-flex flex-row align-items-center">
+            <div class="flex-grow-1">
+              <strong>${d.area} - ${d.dificuldade}</strong>
+              <p>${d.enunciado}</p>
+              <small>Ordem: ${d.ordem}</small>
+            </div>
+            <i class="bi bi-pencil-fill ms-2" style="cursor:pointer;" onclick="editarQuestao('${exameId}', '${q.id}')"></i>
           </div>`;
       });
     }
@@ -1027,6 +1023,66 @@
       }
     }
 
+    // ========== EDITAR QUESTÃO ==========
+    async function editarQuestao(exameId, questaoId) {
+      const questaoSnap = await db.collection('exames').doc(exameId).collection('questoes').doc(questaoId).get();
+      if (!questaoSnap.exists) return alert('Questão não encontrada.');
+      const q = questaoSnap.data();
+      modal('Editar Questão', `
+        <div class="mb-3">
+          <label>Área do conhecimento</label>
+          <select id="qArea" class="form-select">
+            <option value="Conhecimentos Gerais" ${q.area === 'Conhecimentos Gerais' ? 'selected' : ''}>Conhecimentos Gerais</option>
+            <option value="Conhecimento do Casal" ${q.area === 'Conhecimento do Casal' ? 'selected' : ''}>Conhecimento do Casal</option>
+            <option value="Momentos" ${q.area === 'Momentos' ? 'selected' : ''}>Momentos</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label>Dificuldade</label>
+          <select id="qDificuldade" class="form-select">
+            <option ${q.dificuldade === 'Fácil' ? 'selected' : ''}>Fácil</option>
+            <option ${q.dificuldade === 'Média' ? 'selected' : ''}>Média</option>
+            <option ${q.dificuldade === 'Difícil' ? 'selected' : ''}>Difícil</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <textarea id="qEnunciado" class="form-control" rows="3">${q.enunciado}</textarea>
+        </div>
+        <div class="mb-3">
+          <input id="altA" class="form-control mb-1" value="${q.alternativaA}" placeholder="A (corretíssima)">
+          <input id="altB" class="form-control mb-1" value="${q.alternativaB}" placeholder="B">
+          <input id="altC" class="form-control mb-1" value="${q.alternativaC}" placeholder="C">
+          <input id="altD" class="form-control mb-1" value="${q.alternativaD}" placeholder="D">
+          <input id="altE" class="form-control mb-1" value="${q.alternativaE}" placeholder="E">
+        </div>
+      `, `
+        <button class="btn btn-primary" onclick="salvarEdicaoQuestao('${exameId}', '${questaoId}')">Salvar</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>`);
+    }
+
+    async function salvarEdicaoQuestao(exameId, questaoId) {
+      const area = document.getElementById('qArea').value;
+      const dificuldade = document.getElementById('qDificuldade').value;
+      const enunciado = document.getElementById('qEnunciado').value;
+      const A = document.getElementById('altA').value;
+      const B = document.getElementById('altB').value;
+      const C = document.getElementById('altC').value;
+      const D = document.getElementById('altD').value;
+      const E = document.getElementById('altE').value;
+      if (!enunciado || !A || !B || !C || !D || !E) return alert('Preencha todos os campos.');
+      try {
+        await db.collection('exames').doc(exameId).collection('questoes').doc(questaoId).update({
+          area, dificuldade, enunciado,
+          alternativaA: A, alternativaB: B, alternativaC: C, alternativaD: D, alternativaE: E
+        });
+        bootstrap.Modal.getInstance(document.getElementById('modalGenerico')).hide();
+        carregarQuestoes(exameId);
+      } catch (error) {
+        console.error(error);
+        alert("Erro ao salvar edição.");
+      }
+    }
+
     async function salvarProva(exameId) {
       alert('Prova salva!');
       mostrarPagina('criar-provas');
@@ -1044,9 +1100,7 @@
       const exames = [];
       snap.forEach(d => {
         const e = d.data();
-        if (e.destinatarios && e.destinatarios.length > 0) {
-          exames.push({ id: d.id, ...e });
-        }
+        if (e.destinatarios && e.destinatarios.length > 0) exames.push({ id: d.id, ...e });
       });
       const lista = document.getElementById('listaEnviadas');
       if (exames.length === 0) {
@@ -1102,10 +1156,6 @@
       }
     }
 
-    // (funções de correção e resultados mantidas conforme a versão anterior, já completas)
-    // ... (iniciarCorrecao, renderizarCorrecaoQuestao, navegarCorrecao, etc. – omitidas por brevidade, mas presentes no código final)
-    // Elas são exatamente as mesmas da última versão funcional.
-    // Vamos incluí-las por completo para garantir:
     async function iniciarCorrecao(subId) {
       const subSnap = await db.collection('submissoes').doc(subId).get();
       const sub = subSnap.data();
